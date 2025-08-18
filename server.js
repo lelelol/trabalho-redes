@@ -22,7 +22,6 @@ wss.on('connection', ws => {
 
     ws.on('message', rawMessage => {
         const message = JSON.parse(rawMessage);
-
         if (message.type === 'chat') {
             const messageToSend = {
                 type: 'chat',
