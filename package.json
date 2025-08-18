@@ -1,5 +1,14 @@
 {
+  "name": "group-crypto-chat",
+  "version": "1.0.0",
+  "main": "servidor.js",
+  "type": "module",
+  "scripts": {
+    "start": "node servidor.js"
+  },
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "ws": "^8.18.3"
+    "ws": "^8.17.0"
   }
 }
