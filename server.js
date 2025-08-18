@@ -2,19 +2,20 @@ import { WebSocketServer } from 'ws';
 import { randomBytes } from 'crypto';
 
 const wss = new WebSocketServer({ port: 8080 });
+console.log('Servidor WebSocket iniciado na porta 8080.');
 
 const clients = new Map();
 let groupKey = generateNewGroupKey();
 
 function generateNewGroupKey() {
-    console.log('\nNova chave de grupo gerada\n');
+    console.log('Nova chave de grupo gerada.');
     return randomBytes(32).toString('base64');
 }
 
-function broadcast(message) {
-    clients.forEach((client) => {
-        if (client.readyState === 1) {
-            client.send(JSON.stringify(message));
+function broadcast(message, senderWs = null) {
+    clients.forEach((userId, clientWs) => {
+        if (clientWs !== senderWs && clientWs.readyState === 1) {
+            clientWs.send(JSON.stringify(message));
         }
     });
 }
@@ -30,7 +31,8 @@ wss.on('connection', ws => {
         userId: userId
     }));
 
-    broadcast({ type: 'info', message: `${userId} entrou no chat.` });
+    broadcast({ type: 'info', message: `${userId} entrou no chat.` }, ws);
+    ws.send(JSON.stringify({ type: 'info', message: `Você entrou no chat como ${userId}.` }));
 
     ws.on('message', rawMessage => {
         const message = JSON.parse(rawMessage);
@@ -40,7 +42,7 @@ wss.on('connection', ws => {
                 sender: userId,
                 payload: message.payload
             };
-            broadcast(messageToSend);
+            broadcast(messageToSend, ws);
         }
     });
 
@@ -49,16 +51,16 @@ wss.on('connection', ws => {
         clients.delete(ws);
         console.log(`${disconnectedUserId} desconectou`);
 
-        broadcast({ type: 'info', message: `${disconnectedUserId} saiu do chat.` });
+        const infoMessage = { type: 'info', message: `${disconnectedUserId} saiu do chat.` };
+        broadcast(infoMessage);
 
         if (clients.size > 0) {
             groupKey = generateNewGroupKey();
-
             const keyUpdateMessage = { type: 'set-key', key: groupKey };
-            const infoMessage = { type: 'info', message: `chave distribuída` };
+            const rekeyInfoMessage = { type: 'info', message: `nova chave distribuída` };
 
             broadcast(keyUpdateMessage);
-            broadcast(infoMessage);
+            broadcast(rekeyInfoMessage);
         }
     });
 });
